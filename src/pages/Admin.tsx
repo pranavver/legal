@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { LogIn, LogOut, Plus, Trash2, Edit } from 'lucide-react';
+import { LogIn, LogOut, Plus, Trash2, UserPlus } from 'lucide-react';
 import { Blog, Event, Judgment } from '../types';
 
 export default function Admin() {
@@ -10,6 +10,8 @@ export default function Admin() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -41,12 +43,25 @@ export default function Admin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       checkUser();
     } catch (error: any) {
-      alert(error.message);
+      setError(error.message);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      alert('Check your email for the confirmation link!');
+    } catch (error: any) {
+      setError(error.message);
     }
   };
 
@@ -131,10 +146,17 @@ export default function Admin() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
           <div className="flex items-center justify-center mb-6">
-            <LogIn className="h-12 w-12 text-slate-700" />
+            {isSigningUp ? (
+              <UserPlus className="h-12 w-12 text-slate-700" />
+            ) : (
+              <LogIn className="h-12 w-12 text-slate-700" />
+            )}
           </div>
-          <h2 className="text-3xl font-bold text-center mb-6 text-slate-900">Admin Login</h2>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <h2 className="text-3xl font-bold text-center mb-6 text-slate-900">
+            {isSigningUp ? 'Create Account' : 'Admin Login'}
+          </h2>
+          <form onSubmit={isSigningUp ? handleSignUp : handleLogin} className="space-y-4">
+            {error && <p className="text-red-500 text-center">{error}</p>}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
               <input
@@ -159,9 +181,18 @@ export default function Admin() {
               type="submit"
               className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-lg font-semibold transition-colors"
             >
-              Login
+              {isSigningUp ? 'Sign Up' : 'Login'}
             </button>
           </form>
+          <p className="text-center text-slate-600 mt-4">
+            {isSigningUp ? 'Already have an account?' : "Don't have an account?"}
+            <button
+              onClick={() => {setIsSigningUp(!isSigningUp); setError(null);}}
+              className="text-slate-900 hover:underline font-semibold ml-2"
+            >
+              {isSigningUp ? 'Login' : 'Sign Up'}
+            </button>
+          </p>
         </div>
       </div>
     );
