@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { LogIn, LogOut, Plus, Trash2, UserPlus } from 'lucide-react';
+import { LogIn, LogOut, Plus, Trash2, UserPlus, Edit } from 'lucide-react';
 import { Blog, Event, Judgment } from '../types';
 
 export default function Admin() {
@@ -20,6 +20,10 @@ export default function Admin() {
   const [showBlogForm, setShowBlogForm] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [showJudgmentForm, setShowJudgmentForm] = useState(false);
+
+  const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editingJudgment, setEditingJudgment] = useState<Judgment | null>(null);
 
   const [blogForm, setBlogForm] = useState({ title: '', content: '', author: '', image_url: '', published: false });
   const [eventForm, setEventForm] = useState({ title: '', description: '', event_date: '', location: '' });
@@ -96,6 +100,27 @@ export default function Admin() {
     }
   };
 
+  const handleUpdateBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBlog) return;
+    try {
+      const { error } = await supabase.from('blogs').update(blogForm).eq('id', editingBlog.id);
+      if (error) throw error;
+      setEditingBlog(null);
+      setBlogForm({ title: '', content: '', author: '', image_url: '', published: false });
+      setShowBlogForm(false);
+      fetchData();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  const handleEditBlog = (blog: Blog) => {
+    setEditingBlog(blog);
+    setBlogForm(blog);
+    setShowBlogForm(true);
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -109,6 +134,27 @@ export default function Admin() {
     }
   };
 
+  const handleUpdateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) return;
+    try {
+      const { error } = await supabase.from('events').update(eventForm).eq('id', editingEvent.id);
+      if (error) throw error;
+      setEditingEvent(null);
+      setEventForm({ title: '', description: '', event_date: '', location: '' });
+      setShowEventForm(false);
+      fetchData();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setEventForm(event);
+    setShowEventForm(true);
+  };
+
   const handleCreateJudgment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -120,6 +166,27 @@ export default function Admin() {
     } catch (error: any) {
       alert(error.message);
     }
+  };
+
+  const handleUpdateJudgment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingJudgment) return;
+    try {
+      const { error } = await supabase.from('judgments').update(judgmentForm).eq('id', editingJudgment.id);
+      if (error) throw error;
+      setEditingJudgment(null);
+      setJudgmentForm({ title: '', court: '', judgment_date: '', case_number: '', link: '' });
+      setShowJudgmentForm(false);
+      fetchData();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  const handleEditJudgment = (judgment: Judgment) => {
+    setEditingJudgment(judgment);
+    setJudgmentForm(judgment);
+    setShowJudgmentForm(true);
   };
 
   const handleDelete = async (table: string, id: string) => {
@@ -247,7 +314,11 @@ export default function Admin() {
           <div>
             <div className="mb-6">
               <button
-                onClick={() => setShowBlogForm(!showBlogForm)}
+                onClick={() => {
+                  setEditingBlog(null);
+                  setBlogForm({ title: '', content: '', author: '', image_url: '', published: false });
+                  setShowBlogForm(!showBlogForm);
+                }}
                 className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-lg transition-colors"
               >
                 <Plus className="h-5 w-5" />
@@ -257,8 +328,8 @@ export default function Admin() {
 
             {showBlogForm && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 className="text-xl font-bold mb-4">Create New Blog</h3>
-                <form onSubmit={handleCreateBlog} className="space-y-4">
+                <h3 className="text-xl font-bold mb-4">{editingBlog ? 'Edit Blog' : 'Create New Blog'}</h3>
+                <form onSubmit={editingBlog ? handleUpdateBlog : handleCreateBlog} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Title"
@@ -300,11 +371,15 @@ export default function Admin() {
                   </label>
                   <div className="flex space-x-4">
                     <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">
-                      Create Blog
+                      {editingBlog ? 'Update Blog' : 'Create Blog'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowBlogForm(false)}
+                      onClick={() => {
+                        setShowBlogForm(false);
+                        setEditingBlog(null);
+                        setBlogForm({ title: '', content: '', author: '', image_url: '', published: false });
+                      }}
                       className="bg-slate-300 hover:bg-slate-400 text-slate-800 px-6 py-2 rounded-lg"
                     >
                       Cancel
@@ -325,12 +400,20 @@ export default function Admin() {
                         {blog.published ? '✓ Published' : '✗ Draft'}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDelete('blogs', blog.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditBlog(blog)}
+                        className="text-slate-600 hover:text-slate-700"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete('blogs', blog.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -342,7 +425,11 @@ export default function Admin() {
           <div>
             <div className="mb-6">
               <button
-                onClick={() => setShowEventForm(!showEventForm)}
+                onClick={() => {
+                  setEditingEvent(null);
+                  setEventForm({ title: '', description: '', event_date: '', location: '' });
+                  setShowEventForm(!showEventForm)
+                }}
                 className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-lg transition-colors"
               >
                 <Plus className="h-5 w-5" />
@@ -352,8 +439,8 @@ export default function Admin() {
 
             {showEventForm && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 className="text-xl font-bold mb-4">Create New Event</h3>
-                <form onSubmit={handleCreateEvent} className="space-y-4">
+                <h3 className="text-xl font-bold mb-4">{editingEvent ? 'Edit Event' : 'Create New Event'}</h3>
+                <form onSubmit={editingEvent ? handleUpdateEvent : handleCreateEvent} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Title"
@@ -386,11 +473,15 @@ export default function Admin() {
                   />
                   <div className="flex space-x-4">
                     <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">
-                      Create Event
+                      {editingEvent ? 'Update Event' : 'Create Event'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowEventForm(false)}
+                      onClick={() => {
+                        setShowEventForm(false);
+                        setEditingEvent(null);
+                        setEventForm({ title: '', description: '', event_date: '', location: '' });
+                      }}
                       className="bg-slate-300 hover:bg-slate-400 text-slate-800 px-6 py-2 rounded-lg"
                     >
                       Cancel
@@ -411,12 +502,20 @@ export default function Admin() {
                         {new Date(event.event_date).toLocaleString()}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDelete('events', event.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditEvent(event)}
+                        className="text-slate-600 hover:text-slate-700"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete('events', event.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -428,7 +527,11 @@ export default function Admin() {
           <div>
             <div className="mb-6">
               <button
-                onClick={() => setShowJudgmentForm(!showJudgmentForm)}
+                onClick={() => {
+                  setEditingJudgment(null);
+                  setJudgmentForm({ title: '', court: '', judgment_date: '', case_number: '', link: '' });
+                  setShowJudgmentForm(!showJudgmentForm);
+                }}
                 className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-lg transition-colors"
               >
                 <Plus className="h-5 w-5" />
@@ -438,8 +541,8 @@ export default function Admin() {
 
             {showJudgmentForm && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 className="text-xl font-bold mb-4">Create New Judgment</h3>
-                <form onSubmit={handleCreateJudgment} className="space-y-4">
+                <h3 className="text-xl font-bold mb-4">{editingJudgment ? 'Edit Judgment' : 'Create New Judgment'}</h3>
+                <form onSubmit={editingJudgment ? handleUpdateJudgment : handleCreateJudgment} className="space-y-4">
                   <input
                     type="text"
                     placeholder="Title"
@@ -480,11 +583,15 @@ export default function Admin() {
                   />
                   <div className="flex space-x-4">
                     <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg">
-                      Create Judgment
+                      {editingJudgment ? 'Update Judgment' : 'Create Judgment'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowJudgmentForm(false)}
+                      onClick={() => {
+                        setShowJudgmentForm(false);
+                        setEditingJudgment(null);
+                        setJudgmentForm({ title: '', court: '', judgment_date: '', case_number: '', link: '' });
+                      }}
                       className="bg-slate-300 hover:bg-slate-400 text-slate-800 px-6 py-2 rounded-lg"
                     >
                       Cancel
@@ -506,12 +613,20 @@ export default function Admin() {
                         Date: {new Date(judgment.judgment_date).toLocaleDateString()}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDelete('judgments', judgment.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditJudgment(judgment)}
+                        className="text-slate-600 hover:text-slate-700"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete('judgments', judgment.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
